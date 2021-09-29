@@ -1,0 +1,194 @@
+==============================================
+Getting Started on Amazon EMR
+==============================================
+
+For performnace, compatibility and governance reasons to write a new feature in the feature store you`ll
+have to use AWS EMR.
+
+EMR is a widely used solution for distributed compution and it's used on daily bases here at Will Bank.
+
+You will be able to interact with the feature store using EMR in two ways:
+* Steps mananged by Airflow
+* EMR Notebook
+
+Will go through the module usage and then show you how to use it with EMR. 
+
+
+
+Module Usage
+==============================================
+
+To start your feature development you'll certainly need data and of corse we got you covered there
+
+the willfsemr module has its own method to unload data from redshift - so you can
+bring any data from our data lake as a spark dataframe and easily start the feature development.
+You can get more details about this funcion on our Modules section, but here goes on example
+
+.. code-block:: python
+
+    w = willfsemr.Writer()
+    df = w.unload_from_redshift(
+        'select *, current_date as snapshotdate from covid_riscos.sow_base_scr',
+        username='USERNAME',
+        password='PASSWORD',
+        host='datalake-cluster.ckkb9lvch2lp.us-east-1.redshift.amazonaws.com',
+        database='grupoavista'
+    )
+
+With your Spark Dataframe in hand play with it till you get your feature up and ready.
+Once you're done developing the feature it's time to write it to Feature Store!
+
+
+Writing Features
+==============================================
+
+Now, to write these features to the feature store, simply start a new instance 
+of the Writer and use the function save_to_feature_store(). 
+The code bellow will format and upload the features: `feature_1`, 
+`feature_2` and `feature_3`.
+We need to provide an snapshot date columns, which, in our example, is `snapshowdate`
+
+.. code-block:: python
+    
+    will_writer = willfsemr.Writer()
+    featuresToSave = ['feature_1', 'feature_2', 'feature_2']
+    groupingKey = ['index']
+    will_writer.save_to_feature_store(
+        df,
+        groupingKey,
+        featuresToSave,
+        partition=False
+    )
+
+If you want to save the given dataframe partitioned, simply set the flag 
+``partition`` to True.
+
+The above code will format the columns, replace spaces by an underscore and 
+lower the cases.
+
+.. info:: Note the grouping key must be a list, even while containing only one key.
+
+.. note:: Remember to always use the instance will_reader.spark instance of Spark. \
+If you start another instance in you execution code, some conflicts may arise.
+
+
+Airflow and Feature Store
+==============================================
+
+One of the main motivations to build a feature store was to have an way to automatically
+update features given its calculation method - we made that possible trough Airflow!
+
+Once you have an official spark function to transform data (using the feature store methods
+to get data from the data lake and into the feature store) you can go
+to Airflow Dags repository and use the redshift_emr_template to schedule the update of
+yout feature. We left an example there for you to start with - 'fs_spark'.
+
+You can duplicate this folder and insert your function in the spark_src folder.
+once you got your code there, just edit the config.yaml file, there you`ll need
+to reference you code file name in the SPARK_CODE value and add you slack tag,
+the schedule interval and cluster size.
+
+Done. now your spark code will run every time the schedule intervale is met and so
+your feture will get updated.
+
+
+EMR Notebooks and Feature Store
+==============================================
+
+To make you life easyer we made available an alternative to Airflow Writing, 
+you can use notebooks too, as you probabily already use this tool in your 
+daily routine.
+
+To do that you'll only need to start an EMR cluster you can do that using the 
+following config 
+
+.. code-block:: python
+
+    aws emr create-cluster \
+    --auto-scaling-role EMR_AutoScaling_DefaultRole \
+    --applications Name=Hadoop Name=Hive Name=Pig Name=Spark Name=Livy Name=JupyterEnterpriseGateway \
+    --bootstrap-actions '[{"Path":"s3://will-feature-store/emr/bootstrap.sh","Name":"Custom action"}]' \
+    --ebs-root-volume-size 10 \
+    --ec2-attributes '{"KeyName":"Integracao-Datalake","InstanceProfile":"EMR_EC2_DefaultRole","ServiceAccessSecurityGroup":"sg-0a9cb46c1a39f910c","SubnetId":"subnet-04476f089025e92e4","EmrManagedSlaveSecurityGroup":"sg-0bf8dfee6cbf207fe","EmrManagedMasterSecurityGroup":"sg-0ff2688e7cb34e27d"}' \
+    --service-role EMR_DefaultRole --enable-debugging \
+    --release-label emr-5.32.0 \
+    --log-uri 's3n://aws-logs-739007973549-us-east-1/elasticmapreduce/' \
+    --name 'WillFS' \
+    --instance-groups '[{"InstanceCount":1,"InstanceGroupType":"CORE","InstanceType":"m1.xlarge","Name":"Core - 2"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"m1.xlarge","Name":"Master - 1"}]' \
+    --scale-down-behavior TERMINATE_AT_TASK_COMPLETION \
+    --region us-east-1
+
+or by cloning the cluster WillFS in the EMR AWS console.
+
+Once you got your cluster up and running just attach a notebook to it and start developing!
+**Please add this line in the first block of your notebook and make sure it's the first thing to run**
+
+.. code-block:: python
+
+    %%configure -f
+    {"conf": {"spark.jars":"s3://will-pipy/willfsemr/jars/spark-redshift_2.10-2.0.1.jar,s3://will-pipy/willfsemr/jars/RedshiftJDBC4-no-awssdk-1.2.41.1065.jar,s3://will-pipy/willfsemr/jars/minimal-json-0.9.5.jar,s3://will-pipy/willfsemr/jars/spark-avro_2.11-3.0.0.jar",
+              "spark.pyspark.python": "python3",
+              "spark.pyspark.virtualenv.enabled": "true",
+              "spark.pyspark.virtualenv.type":"native",
+              "spark.pyspark.virtualenv.bin.path":"/usr/bin/virtualenv"}
+    }
+
+
+
+Also, the willfsemr will already be installed in the cluster so using the **pyspark kernel**
+
+.. code-block:: python
+
+    from willfsemr import Writer
+
+should work properly. If you want to install any other package in this instance
+you can use this command
+
+.. code-block:: python
+
+    sc.install_pypi_package("celery")
+
+If you want to list the already existing packages, simply
+
+.. code-block:: python
+
+    sc.list_packages()
+
+The EMR instace has the following packages already installed: 
+
+.. code-block:: python
+
+    Package                    Version   
+    -------------------------- ----------
+    beautifulsoup4             4.9.3     
+    boto                       2.49.0    
+    boto3                      1.17.39   
+    botocore                   1.20.39   
+    click                      7.1.2     
+    jmespath                   0.10.0    
+    joblib                     0.17.0    
+    lightgbm                   3.2.0     
+    lxml                       4.6.1     
+    mysqlclient                1.4.2     
+    nltk                       3.5       
+    nose                       1.3.4     
+    numpy                      1.20.2    
+    pandas                     1.2.3     
+    pip                        9.0.1     
+    py-dateutil                2.2       
+    python-dateutil            2.8.1     
+    python37-sagemaker-pyspark 1.4.1     
+    pytz                       2020.1    
+    PyYAML                     5.3.1     
+    regex                      2020.10.28
+    s3transfer                 0.3.6     
+    scikit-learn               0.24.1    
+    scipy                      1.6.2     
+    setuptools                 28.8.0    
+    six                        1.13.0    
+    threadpoolctl              2.1.0     
+    tqdm                       4.51.0    
+    urllib3                    1.26.4    
+    wheel                      0.29.0    
+    willfsemr                  0.2       
+    windmill                   1.6

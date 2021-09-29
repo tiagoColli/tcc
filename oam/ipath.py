@@ -1,0 +1,2 @@
+class IPath:
+    print('ola')
