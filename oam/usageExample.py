@@ -1,3 +1,5 @@
+from IsolationPath import IsolationPath
+
 isolationPath = IsolationPath(NUMBER_ITEMS_TREE, NUMBER_TREES)
 isolationPath.setConfigurations("SimpleCombination", [relevantAttributes])
 
