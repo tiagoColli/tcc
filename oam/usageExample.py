@@ -1,21 +1,28 @@
+from itertools import combinations
+
+import pandas as pd
+
 from IsolationPath import IsolationPath
 
-isolationPath = IsolationPath(NUMBER_ITEMS_TREE, NUMBER_TREES)
-isolationPath.setConfigurations("SimpleCombination", [relevantAttributes])
+df = pd.read_csv('../datasets/df_outliers.csv')
+df.drop(columns=['Unnamed: 0', 'datetime', 'LOF_score', 'LOF_predictions'], inplace=True)
 
-for queryPoint in pLUBPositiveSelectedIndex:
-    normalData.loc[appendRowIndex] = faultyData.loc[queryPoint]
-    isolationPath.setDataframe(normalData)
+subspacesList = []
+for itBoundary in range(2, 6):
+    subspacesList = subspacesList + [list(x) for x in combinations(df.columns, itBoundary)]
 
-    sqlParameters = {
-        "tableName": tableNameIPath,
-        "engine": engineName
-    }
+isolationPath = IsolationPath(20, 3, debug=True)
+isolationPath.setConfigurations(
+    "SimpleCombination",
+    subspacesList
+)
 
-    defaultColumns = {
-        "queryPoint": queryPoint,
-        "Alarm": True,
-    }
+queryPoint = 40
 
-    isolationPath.calculateMetricForEachSubspace(
-        queryPoint, sqlParameters, defaultColumns=defaultColumns)
+# normalData.loc[appendRowIndex] = faultyData.loc[queryPoint]
+isolationPath.setDataframe(df)
+
+df2 = isolationPath.calculateMetricForEachSubspace(
+    queryPoint, defaultColumns=None)
+
+df2.sort_values(by=['Score'])

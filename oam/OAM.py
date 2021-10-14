@@ -15,8 +15,8 @@ class OAM:
 
     def __init__(self, **kwarg):
         self.subspaceGenerationParameters = {
-            "minItemsPerSubspace": 1,
-            "maxItemsPerSubspace": 4,
+            "minItemsPerSubspace": 2,
+            "maxItemsPerSubspace": 6,
             "beamWidth": 10
         }
 
@@ -191,10 +191,10 @@ class OAM:
         return results
 
     def calculateMetric(self, args):
-        print(str(args["attributes"]))
+        print(f'{str(args["attributes"])}\n')
         metric = self.runMethod(
             args["queryPoint"], self.originalDataframe[args["attributes"]])
-        return [str(args["attributes"]), metric, len(args["attributes"])]+list(self.defaultColumns.values())
+        return [str(args["attributes"]), metric, len(args["attributes"])]
 
         # startExecution = time.process_time()
         # metric = self.runMethod(args["queryPoint"],self.originalDataframe[args["attributes"]])

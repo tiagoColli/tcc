@@ -86,7 +86,7 @@ class IsolationPath(OAM):
             # Faz a subamostragem do conjunto de dados e adiciona o objeto de interesse
             subsampled = dataframeWithoutQueryPoint.sample(
                 n=self.subsampleRate-1)
-
+                
             subsampled = subsampled.append(dataframe.iloc[queryPointIndex, :])
             # Calcula o caminho para esse conjunto de dados submostrados.
             # O objeto de interesse Ã© sempre o Ãºltimo da dataframe
