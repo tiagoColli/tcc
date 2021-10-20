@@ -1,110 +1,95 @@
-
-import time
-import math
-import datetime
-
-import pandas
 import numpy
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-from OAM import OAM
+import types
+import math
 
 
-class IsolationPath(OAM):
-    def __init__(self, subsampleRate, numberPaths, **kwargs):
-        super(IsolationPath, self).__init__(**kwargs)
-        self.subsampleRate = subsampleRate
-        self.numberPaths = numberPaths
-        self.averagePathLength = 0
-        self.allPathsLength = []
+class IsolationPath:
+    def __init__(self, subsample_size, number_of_paths):
+        self.subsample_size = subsample_size
+        self.number_of_paths = number_of_paths
 
-    def resetMetrics(self):
-        super().resetMetrics()
-        self.averagePathLength = 0
-        self.allPathsLength = []
-        self.averageEvolution = []
-        pass
+    def score(self, dataframe, query_point_index):
+        dataframe_without_query = dataframe.drop(query_point_index)
+        done_paths_length = []
 
-    def calculatePath(self, orignalDataframe, queryPointIndex):
-        subspace = orignalDataframe.copy(deep=True)
-        subspace *= 10**5
-        subspace = subspace[subspace.columns[:len(subspace)]].astype("int32")
+        for i in range(self.number_of_paths):
+            subsample = self._subsample_dataframe_with_query(
+                dataframe_without_query, query_point_index
+            )
 
-        # garante que o index estara certo (quando dataframes sao adicionados, o indice nem sempre eh atualizado)
-        subspace = subspace.reset_index(drop=True)
+            done_paths_length.append(
+                self._calc_path_length(subsample, len(subsample)-1)
+            )
 
-        # contador de divisoes
-        isolationPath = 0
+        # returns the average path
+        return sum(done_paths_length)/len(done_paths_length)
 
-        while True:
-            # Conseguiu isolar o ponto de interesse?
-            if(len(subspace) <= 1):
-                break
+    def _subsample_dataframe_with_query(self, dataframe, query_point_index):
+        subsample = dataframe.sample(n=self.subsample_size-1)
+        return subsample.append(dataframe.iloc[query_point_index, :])
 
-            # Sorteia um atributo
-            randomAttributeIndex = numpy.random.random_integers(
-                low=0, high=len(subspace.columns)-1, size=None)
-            randomAttributeName = subspace.columns[randomAttributeIndex]
-            attributeMax = subspace[randomAttributeName].max()
-            attributeMin = subspace[randomAttributeName].min()
+    def _calc_path_length(self, subspace, query_point_index):
+        subspace_sample = subspace.copy(deep=True)
+        path_length = 0
 
-            if attributeMin == attributeMax:
-                # Remove o atributo
-                subspace = subspace.drop(randomAttributeName, axis=1)
-                # Se nao for o ultimo atributo, volta para a fase de sorteio. Se for, aplica um fator de correcao e termina
-                if len(subspace.columns) == 0:
-                    isolationPath = isolationPath+2 * \
-                        (math.log(len(subspace))+numpy.euler_gamma)-2
-                    break
+        # while query points is not isolated yet
+        while len(subspace_sample) > 1:
+            random_attribute = self._get_random_attribute(
+                subspace_sample
+            )
+
+            # if the attribute can't be cut anymore, remove it
+            if random_attribute.max == random_attribute.min:
+                subspace_sample = subspace_sample.drop(
+                    random_attribute.name, axis=1
+                )
                 continue
 
-            # Ponto de partiÃ§Ã£o da Ã¡rvore
-            intersectionPoint = numpy.random.uniform(
-                attributeMin, attributeMax, None)
-
-            # Valor do atributo para o objeto de interesse
-            objectValue = subspace.loc[queryPointIndex, randomAttributeName]
-            if objectValue < intersectionPoint:
-                subspace = subspace[subspace[randomAttributeName]
-                                    < intersectionPoint]
-
+            # if the subspace has no more cuts to be done, adjust the path lenth and end the loop
+            if len(subspace_sample.columns) == 0:
+                sample_size = len(subspace_sample)
+                path_length = self._path_length_adjustment(
+                    path_length, sample_size
+                )
+                break
+            # else cut the tree
             else:
-                subspace = subspace[subspace[randomAttributeName]
-                                    >= intersectionPoint]
-            isolationPath = isolationPath+1
+                # get a random split point in the tree
+                split_point = numpy.random.uniform(
+                    random_attribute.min, random_attribute.max, None
+                )
 
-        del subspace
-        return isolationPath
+                # get the query point in the `random_attribute` dimension
+                query_point = subspace.loc[query_point_index,
+                                           random_attribute.name]
 
-    def runMethod(self, queryPointIndex, dataframe):
-        dataframeWithoutQueryPoint = dataframe.drop(queryPointIndex)
-        allPathsLength = []
-        startExecution = time.process_time()
+                subspace_sample = self._cut_tree(
+                    subspace_sample, split_point, query_point, random_attribute.name
+                )
 
-        for i in range(self.numberPaths):
-            # Faz a subamostragem do conjunto de dados e adiciona o objeto de interesse
-            subsampled = dataframeWithoutQueryPoint.sample(
-                n=self.subsampleRate-1)
-                
-            subsampled = subsampled.append(dataframe.iloc[queryPointIndex, :])
-            # Calcula o caminho para esse conjunto de dados submostrados.
-            # O objeto de interesse Ã© sempre o Ãºltimo da dataframe
-            allPathsLength.append(self.calculatePath(
-                subsampled, len(subsampled)-1))
+                path_length = path_length + 1
 
-        # media dos caminhos
-        averagePath = sum(allPathsLength)/len(allPathsLength)
+        del subspace_sample
+        return path_length
 
-        # media em cada etapa
-        # self.averageEvolution=[sum(self.allPathsLength[:it+1])/(it+1) for it in range(len (self.allPathsLength))]
-        # print(time.process_time() - startExecution)
+    # draw an random attribute from the subspace
+    def _get_random_attribute(self, subspace_sample):
+        random_index = numpy.random.random_integers(
+            low=0, high=len(subspace_sample.columns)-1, size=None)
+        random_attribute = types.SimpleNamespace()
+        random_attribute.name = subspace_sample.columns[random_index]
+        random_attribute.max = subspace_sample[random_attribute.name].max()
+        random_attribute.min = subspace_sample[random_attribute.name].min()
 
-        return averagePath
+        return random_attribute
 
-    # def plotResult(self):
-    #     plt.plot(self.allPathsLength, color='y',label='Comprimento dos caminhos')
-    #     plt.plot(self.averageEvolution, color='r', linestyle=':',label='EvoluÃ§Ã£o da mÃ©dia')
-    #     plt.axhline(y=self.averagePath, color='b', linestyle='dashed',label='MÃ©dia')
-    #     plt.legend(loc='upper right')
-    #     plt.show()
+    # adjust the path lenth when the subspace has no more cuts to be done
+    def _path_length_adjustment(self, path_length, sample_size):
+        return path_length+2 * ((math.log(sample_size)+numpy.euler_gamma)-2)
+
+    # split the subspace in the given `split_point`
+    def _cut_tree(self, subspace_sample, split_point, query_point, random_attribute_name):
+        if query_point < split_point:
+            return subspace_sample[subspace_sample[random_attribute_name] < split_point]
+        else:
+            return subspace_sample[subspace_sample[random_attribute_name] >= split_point]
