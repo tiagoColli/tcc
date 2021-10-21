@@ -10,24 +10,26 @@ class IsolationPath:
         self.number_of_paths = number_of_paths
 
     def score(self, dataframe, query_point_index):
-        dataframe_without_query = dataframe.drop(query_point_index)
         done_paths_length = []
 
-        for i in range(self.number_of_paths):
+        for _ in range(self.number_of_paths):
             subsample = self._subsample_dataframe_with_query(
-                dataframe_without_query, query_point_index
+                dataframe, query_point_index
             )
 
             done_paths_length.append(
                 self._calc_path_length(subsample, len(subsample)-1)
             )
 
-        # returns the average path
+        # returns the average path length
         return sum(done_paths_length)/len(done_paths_length)
 
     def _subsample_dataframe_with_query(self, dataframe, query_point_index):
-        subsample = dataframe.sample(n=self.subsample_size-1)
-        return subsample.append(dataframe.iloc[query_point_index, :])
+        # sample the dataframe without the query
+        dataframe_without_query = dataframe.drop(query_point_index)
+        subsample = dataframe_without_query.sample(n=self.subsample_size-1)
+        # adds it again to ensure its existance
+        return subsample.append(dataframe.loc[query_point_index])
 
     def _calc_path_length(self, subspace, query_point_index):
         subspace_sample = subspace.copy(deep=True)
@@ -65,25 +67,32 @@ class IsolationPath:
         return path_length
 
     def _get_random_attribute(self, subspace_sample):
-        ''' get an random attribute from the subspace and return its metadata'''
+        ''' get an random attribute from the subspace and return
+        its metadata'''
 
         random_index = numpy.random.random_integers(
-            low=0, high=len(subspace_sample.columns)-1, size=None)
-        random_attribute = types.SimpleNamespace()
+            low=0,
+            high=len(subspace_sample.columns)-1,
+            size=None
+        )
 
+        random_attribute = types.SimpleNamespace()
         random_attribute.name = subspace_sample.columns[random_index]
         random_attribute.max = subspace_sample[random_attribute.name].max()
         random_attribute.min = subspace_sample[random_attribute.name].min()
         return random_attribute
 
     def _path_length_adjustment(self, path_length, sample_size):
-        '''apply gama correction the path lenth when the subspace has no more 
-        cuts to be done'''
+        '''apply euler correction to the path lenth when there's no
+        subspace left'''
+
         return path_length+2 * ((math.log(sample_size)+numpy.euler_gamma)-2)
 
     def _cut_tree(self, subspace_sample, random_attribute,
                   query_point_index):
-        '''split the subspace in the given `split_point`'''
+        '''make a random cut in the rows - get a random value in the
+        dataframe and keeps all the lower or greater values, depending on
+        the query_point sits'''
 
         # get a random split point in the tree
         split_point = numpy.random.uniform(
