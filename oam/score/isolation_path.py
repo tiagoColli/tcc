@@ -46,7 +46,7 @@ class IsolationPath:
                     random_attribute.name, axis=1
                 )
 
-                # if the subspace has no more cuts to be done, adjust the path lenth and end the loop
+                # if no attributes are left, adjust the path length and end the loop
                 if len(subspace_sample.columns) == 0:
                     sample_size = len(subspace_sample)
                     path_length = self._path_length_adjustment(
@@ -55,16 +55,8 @@ class IsolationPath:
                     break
                 continue
 
-            # get a random split point in the tree
-            split_point = numpy.random.uniform(
-                random_attribute.min, random_attribute.max, None
-            )
-
-            # get the query point in the `random_attribute` dimension
-            query_point = subspace_sample.loc[query_point_index, random_attribute.name]
-
             subspace_sample = self._cut_tree(
-                subspace_sample, split_point, query_point, random_attribute.name
+                subspace_sample, random_attribute, query_point_index
             )
 
             path_length = path_length + 1
@@ -72,24 +64,37 @@ class IsolationPath:
         del subspace_sample
         return path_length
 
-    # draw an random attribute from the subspace
     def _get_random_attribute(self, subspace_sample):
+        ''' get an random attribute from the subspace and return its metadata'''
+
         random_index = numpy.random.random_integers(
             low=0, high=len(subspace_sample.columns)-1, size=None)
         random_attribute = types.SimpleNamespace()
+
         random_attribute.name = subspace_sample.columns[random_index]
         random_attribute.max = subspace_sample[random_attribute.name].max()
         random_attribute.min = subspace_sample[random_attribute.name].min()
-
         return random_attribute
 
-    # adjust the path lenth when the subspace has no more cuts to be done
     def _path_length_adjustment(self, path_length, sample_size):
+        '''apply gama correction the path lenth when the subspace has no more 
+        cuts to be done'''
         return path_length+2 * ((math.log(sample_size)+numpy.euler_gamma)-2)
 
-    # split the subspace in the given `split_point`
-    def _cut_tree(self, subspace_sample, split_point, query_point, random_attribute_name):
+    def _cut_tree(self, subspace_sample, random_attribute,
+                  query_point_index):
+        '''split the subspace in the given `split_point`'''
+
+        # get a random split point in the tree
+        split_point = numpy.random.uniform(
+            random_attribute.min, random_attribute.max, None
+        )
+
+        # get the query point in the `random_attribute` dimension
+        query_point = subspace_sample.loc[query_point_index,
+                                          random_attribute.name]
+
         if query_point < split_point:
-            return subspace_sample[subspace_sample[random_attribute_name] < split_point]
+            return subspace_sample[subspace_sample[random_attribute.name] < split_point]
         else:
-            return subspace_sample[subspace_sample[random_attribute_name] >= split_point]
+            return subspace_sample[subspace_sample[random_attribute.name] >= split_point]

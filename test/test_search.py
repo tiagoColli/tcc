@@ -22,7 +22,6 @@ search = SimpleCombination(
     dimensions=['variation_mean', 'variation_std', 'up_count',
                 'down_count', 'top_15_variation_mean',
                 'top_15_variation_std'],
-    multiprocessing=True
 )
 
 search.search(df, 41)
