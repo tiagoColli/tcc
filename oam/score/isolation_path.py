@@ -1,6 +1,7 @@
-import numpy
-import types
 import math
+import types
+
+import numpy
 
 
 class IsolationPath:
@@ -30,6 +31,7 @@ class IsolationPath:
 
     def _calc_path_length(self, subspace, query_point_index):
         subspace_sample = subspace.copy(deep=True)
+        subspace_sample.reset_index(drop=True, inplace=True)
         path_length = 0
 
         # while query points is not isolated yet
@@ -43,31 +45,29 @@ class IsolationPath:
                 subspace_sample = subspace_sample.drop(
                     random_attribute.name, axis=1
                 )
+
+                # if the subspace has no more cuts to be done, adjust the path lenth and end the loop
+                if len(subspace_sample.columns) == 0:
+                    sample_size = len(subspace_sample)
+                    path_length = self._path_length_adjustment(
+                        path_length, sample_size
+                    )
+                    break
                 continue
 
-            # if the subspace has no more cuts to be done, adjust the path lenth and end the loop
-            if len(subspace_sample.columns) == 0:
-                sample_size = len(subspace_sample)
-                path_length = self._path_length_adjustment(
-                    path_length, sample_size
-                )
-                break
-            # else cut the tree
-            else:
-                # get a random split point in the tree
-                split_point = numpy.random.uniform(
-                    random_attribute.min, random_attribute.max, None
-                )
+            # get a random split point in the tree
+            split_point = numpy.random.uniform(
+                random_attribute.min, random_attribute.max, None
+            )
 
-                # get the query point in the `random_attribute` dimension
-                query_point = subspace.loc[query_point_index,
-                                           random_attribute.name]
+            # get the query point in the `random_attribute` dimension
+            query_point = subspace_sample.loc[query_point_index, random_attribute.name]
 
-                subspace_sample = self._cut_tree(
-                    subspace_sample, split_point, query_point, random_attribute.name
-                )
+            subspace_sample = self._cut_tree(
+                subspace_sample, split_point, query_point, random_attribute.name
+            )
 
-                path_length = path_length + 1
+            path_length = path_length + 1
 
         del subspace_sample
         return path_length

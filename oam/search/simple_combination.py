@@ -13,18 +13,19 @@ class SimpleCombination:
         min_items_per_subspace: int = None,
         max_items_per_subspace: int = None,
         dimensions: list = None,
-        subspaces: list = None
+        subspaces: list = None,
+        multiprocessing: bool = None
     ):
         self.score_method_instance = score_method_instance
         self.min_items_per_subspace = min_items_per_subspace
         self.max_items_per_subspace = max_items_per_subspace
         self.dimension = dimensions
         self.subspaces = subspaces
-        self.multiprocessing = None
+        self.multiprocessing = multiprocessing
 
-    def search(self, query_point: int, dataframe: pd.DataFrame) -> pd.DataFrame:
+    def search(self, dataframe: pd.DataFrame, query_point: int) -> pd.DataFrame:
         if not self.subspaces:
-            self.subspaces = self.generate_subspaces()
+            self.subspaces = self._generate_subspaces()
 
         results = pd.DataFrame(
             columns=["subspace", "score", "subspace_size"]
@@ -32,7 +33,7 @@ class SimpleCombination:
 
         if not self.multiprocessing:
             for subspace in self.subspaces:
-                result_row = self.score_subspace(
+                result_row = self._score_subspace(
                     query_point, dataframe, subspace
                 )
                 # Appends to the last line of the dataframe
@@ -43,15 +44,15 @@ class SimpleCombination:
             with futures.ProcessPoolExecutor() as executor:
                 # Defining default arguments to the function
                 partial_score_subspace = partial(
-                    self.score_subspace, query_point=query_point, dataframe=dataframe)
+                    self._score_subspace, query_point=query_point, dataframe=dataframe)
 
                 for result_row in executor.map(partial_score_subspace, self.subspaces):
                     # Appends to the last line of the dataframe
                     results.loc[len(results)] = result_row
 
-        return results.sort_values(by=['Score'])
+        return results.sort_values(by=['score'])
 
-    def generate_subspaces(self) -> list:
+    def _generate_subspaces(self) -> list:
         # Using simple combination - all to all for every legth from min to max range
         subspaces_list = []
         for boundary in range(self.min_items_per_subspace, self.max_items_per_subspace):
@@ -60,10 +61,10 @@ class SimpleCombination:
 
         return subspaces_list
 
-    def score_subspace(self, query_point: int, dataframe: pd.DataFrame, subspace_dimensions: list) -> list:
-        score = self.score_method_instance.run(
-            query_point,
-            dataframe[subspace_dimensions]
+    def _score_subspace(self, query_point: int, dataframe: pd.DataFrame, subspace_dimensions: list) -> list:
+        score = self.score_method_instance.score(
+            dataframe[subspace_dimensions],
+            query_point
         )
         logging.info(
             f"subspace {str(subspace_dimensions)} scored: {str(score)}")
