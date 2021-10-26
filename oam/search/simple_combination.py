@@ -34,18 +34,17 @@ class SimpleCombination:
         if not self.multiprocessing:
             for subspace in self.subspaces:
                 result_row = self._score_subspace(
-                    query_point, dataframe, subspace
+                    subspace, query_point, dataframe
                 )
                 # Appends to the last line of the dataframe
                 results.loc[len(results)] = result_row
 
         else:
+            # Defining default arguments to the function
+            partial_score_subspace = partial(
+                self._score_subspace, query_point=query_point, dataframe=dataframe)
             # Copying the dataframe to every process - possible memory leak
-            with futures.ProcessPoolExecutor() as executor:
-                # Defining default arguments to the function
-                partial_score_subspace = partial(
-                    self._score_subspace, query_point=query_point, dataframe=dataframe)
-
+            with futures.ProcessPoolExecutor(max_workers=2) as executor:
                 for result_row in executor.map(partial_score_subspace, self.subspaces):
                     # Appends to the last line of the dataframe
                     results.loc[len(results)] = result_row
@@ -61,7 +60,8 @@ class SimpleCombination:
 
         return subspaces_list
 
-    def _score_subspace(self, query_point: int, dataframe: pd.DataFrame, subspace_dimensions: list) -> list:
+    def _score_subspace(self, subspace_dimensions: list, query_point: int, dataframe: pd.DataFrame) -> list:
+        
         score = self.score_method_instance.score(
             dataframe[subspace_dimensions],
             query_point
