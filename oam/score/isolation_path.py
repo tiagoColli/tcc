@@ -92,10 +92,9 @@ class IsolationPath(ScoringBaseClass):
     def _get_random_attribute(self, subspace_sample: pd.DataFrame) -> types.SimpleNamespace:
         ''' get an random attribute from the subspace and return
         its metadata'''
-
-        random_index = numpy.random.random_integers(
+        random_index = numpy.random.randint(
             low=0,
-            high=len(subspace_sample.columns)-1,
+            high=len(subspace_sample.columns),
             size=None
         )
 
