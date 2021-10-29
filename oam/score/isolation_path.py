@@ -15,18 +15,19 @@ class IsolationPath(ScoringBaseClass):
     def score(self, dataframe: pd.DataFrame, query_point_index: int) -> float:
         ''' A function to score a query in a given subspace.
 
-        It performs a binary search in the subspace represented in
-        `dataframe` in search of the object of the informed
-        `query_point_index` position. When it manages to isolate
-        the object, it returns a score that represents the length of
-        the path to isolate the query.
+        It performs a binary search in the `dataframe` subspace
+        for the object of the informed `query_point_index` position.
+        When it manages to isolate the object, it returns a score that
+        represents the number of iterations or cuts that were made till
+        the query was isolated. The lower the value more an outlier
+        the query is
 
         Args:
             dataframe (pd.DataFrame): Dataframe used to
                 build the path tree.
 
             query_point_index (int): Index of the query
-                which you want to calculate the path length.
+                which you want to analyse
 
         Returns:
             float: Returns the subspace score. '''
