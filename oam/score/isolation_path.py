@@ -38,7 +38,10 @@ class IsolationPath:
         # returns the average path length
         return sum(done_paths_length)/len(done_paths_length)
 
-    def _subsample_dataframe_with_query(self, dataframe: pd.DataFrame, query_point_index: int) -> pd.DataFrame:
+    def _subsample_dataframe_with_query(
+            self,
+            dataframe: pd.DataFrame,
+            query_point_index: int) -> pd.DataFrame:
         # sample the dataframe without the query
         dataframe_without_query = dataframe.drop(query_point_index)
         subsample = dataframe_without_query.sample(n=self.subsample_size-1)
@@ -102,7 +105,11 @@ class IsolationPath:
 
         return path_length+2 * ((math.log(sample_size)+numpy.euler_gamma)-2)
 
-    def _cut_tree(self, subspace_sample: pd.DataFrame, random_attribute: types.SimpleNamespace, query_point_index: int) -> pd.DataFrame:
+    def _cut_tree(
+            self,
+            subspace_sample: pd.DataFrame,
+            random_attribute: types.SimpleNamespace,
+            query_point_index: int) -> pd.DataFrame:
         '''make a random cut in the rows - get a random value in the
         dataframe and keeps all the lower or greater values, depending on
         the query_point sits'''

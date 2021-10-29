@@ -8,12 +8,7 @@ from oam.search.simple_combination import SimpleCombination
 
 @pytest.fixture
 def dataframe():
-    return pd.read_csv('../datasets/df_outliers.csv')
-
-
-@pytest.fixture
-def score_sample():
-    return pd.read_csv('../datasets/score_sample.csv')
+    return pd.read_csv('../../datasets/df_outliers.csv')
 
 
 @pytest.fixture
@@ -37,6 +32,6 @@ def ipath_sc(ipath):
     )
 
 
-def test_ipath_score(ipath_sc, score_sample, dataframe):
+def test_ipath_score(ipath_sc, dataframe):
     score_output = ipath_sc.search(dataframe, 41)
-    assert score_output.shape == score_sample.shape
+    assert score_output.shape == (35, 3)

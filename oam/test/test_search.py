@@ -8,12 +8,7 @@ from oam.search.simple_combination import SimpleCombination
 
 @pytest.fixture
 def dataframe():
-    return pd.read_csv('../datasets/df_outliers.csv')
-
-
-@pytest.fixture
-def score_sample():
-    return pd.read_csv('../datasets/score_sample.csv')
+    return pd.read_csv('../../datasets/df_outliers.csv')
 
 
 @pytest.fixture
@@ -33,7 +28,17 @@ def ipath_sc(ipath):
         dimensions=['variation_mean', 'variation_std', 'up_count',
                     'down_count', 'top_15_variation_mean',
                     'top_15_variation_std'],
-        multiprocessing=True
+    )
+
+
+@pytest.fixture
+def sc_defined_subspaces(ipath):
+    return SimpleCombination(
+        ipath,
+        subspaces=[
+            ['variation_std', 'down_count', 'top_15_variation_std'],
+            ['variation_mean', 'up_count', 'top_15_variation_mean']
+        ]
     )
 
 
@@ -79,6 +84,11 @@ def test_generate_subspaces(ipath_sc):
     assert subspaces == expected_subspaces
 
 
-def test_ipath_scoring(ipath_sc, score_sample, dataframe):
+def test_ipath_scoring(ipath_sc, dataframe):
     score_output = ipath_sc.search(dataframe, 41)
-    assert score_output.shape == score_sample.shape
+    assert score_output.shape == (35, 3)
+
+
+def test_ipath_defined_subspaces(sc_defined_subspaces, dataframe):
+    score_output = sc_defined_subspaces.search(dataframe, 41)
+    assert score_output.shape == (2, 3)
