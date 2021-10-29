@@ -5,25 +5,53 @@ from itertools import combinations
 
 import pandas as pd
 
+from oam.score import ScoringBaseClass
+
 
 class SimpleCombination:
     def __init__(
         self,
-        score_method_instance: int,
+        score_method_instance: ScoringBaseClass,
         min_items_per_subspace: int = None,
         max_items_per_subspace: int = None,
         dimensions: list = None,
         subspaces: list = None,
         multiprocessing: bool = None
     ):
-        if (
-            (min_items_per_subspace or max_items_per_subspace or dimensions)
-            and subspaces
-        ):
-            raise Exception(
-                'You can either pass your desired subspaces to search '
-                'from or use the parameters to generate new subspaces '
-                'combining dimensions. Please pass the parameters correctly.')
+        ''' A Class to generate subspaces by combining the dimensions within
+        the defined range, it will combine without repetition all to all
+        dimensions, each combination will be called a subspace.
+
+        You can pass your own list of subspaces as well, just make sure
+        to leave the min_items_per_subspace, max_items_per_subspace and
+        dimensions parameters empty.
+
+        With the subspaces in hands you will be able to search through them
+        to find what's the ones with higher outliing score.
+
+        Args:
+            **score_method_instance** (ScoringClass): the instance
+                of the scoring method that will be used to evaluete each
+                subspace.
+
+            **min_items_per_subspace** (int): the lower limit of the subspace
+                lenght to be created.
+
+            **max_items_per_subspace** (int): the upper limit of the subspace
+                lenght to be created.
+
+            **dimensions** (list): the list of the columns found in your
+                dataframe that should be combined to created the subspaces
+                to search from.
+
+            **subspaces** (list): the list of subspaces to search from.
+                **if you use this argument, min, max and dimensions arguments
+                will be ignored.**
+
+            *multiprocessing* (bool): The option to enable multiprocessing.
+                It will require a higher availability of memory but will
+                potentially decrease a lot the search time if you have
+                the resources.'''
 
         self.score_method_instance = score_method_instance
         self.min_items_per_subspace = min_items_per_subspace
@@ -32,7 +60,21 @@ class SimpleCombination:
         self.subspaces = subspaces
         self.multiprocessing = multiprocessing
 
-    def search(self, dataframe: pd.DataFrame, query_point: int) -> pd.DataFrame:        
+    def search(self, dataframe: pd.DataFrame, query_point: int) -> pd.DataFrame:
+        ''' This function will loop through all the subspaces scoring them all
+        using the chosen scoring method and will return an ordered dataframe
+        with the dimensions followed by its score.
+
+        Args:
+            dataframe (pd.DataFrame): The dataframe to be analysed
+
+            query_point (int): The index of the row (query) you want
+                to analyse
+
+        Returns:
+            (pd.Dataframe): A sorted dataframe with each
+            dimension followed by its score'''
+
         if not self.subspaces:
             self.subspaces = self._generate_subspaces()
 

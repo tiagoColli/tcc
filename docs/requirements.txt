@@ -1,8 +1,0 @@
-python-dotenv
-s3fs
-boto3
-pandas
-pyarrow
-pyspark
-sqlalchemy
-findspark

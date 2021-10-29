@@ -1,10 +1,13 @@
 import math
 import types
-import pandas as pd
+
 import numpy
+import pandas as pd
+
+from . import ScoringBaseClass
 
 
-class IsolationPath:
+class IsolationPath(ScoringBaseClass):
     def __init__(self, subsample_size: int, number_of_paths: int):
         self.subsample_size = subsample_size
         self.number_of_paths = number_of_paths
@@ -12,18 +15,21 @@ class IsolationPath:
     def score(self, dataframe: pd.DataFrame, query_point_index: int) -> float:
         ''' A function to score a query in a given subspace.
 
-            It performs a binary search in the subspace represented in `dataframe` 
-            in search of the object of the informed `query_point_index` position. When it 
-            manages to isolate the object, it returns a score that represents the 
-            length of the path to isolate the query.
+        It performs a binary search in the subspace represented in
+        `dataframe` in search of the object of the informed
+        `query_point_index` position. When it manages to isolate
+        the object, it returns a score that represents the length of
+        the path to isolate the query.
 
-            Args:
-                *dataframe* (pd.DataFrame): Dataframe used to build the path tree.
+        Args:
+            dataframe (pd.DataFrame): Dataframe used to
+                build the path tree.
 
-                *query_point_index* (int): Index of the query which you want to calculate the path length.
+            query_point_index (int): Index of the query
+                which you want to calculate the path length.
 
-            Returns:
-                *float*: Returns the subspace score. '''
+        Returns:
+            float: Returns the subspace score. '''
         done_paths_length = []
 
         for _ in range(self.number_of_paths):
