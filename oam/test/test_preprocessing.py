@@ -18,5 +18,5 @@ def dataframe():
 
 def test_normalization(dataframe):
     df = normalize(dataframe, 0, 5)
-    assert df.min() == 0
-    assert df.max() == 5
+    assert all([min == 0 for min in df.min()])
+    assert all([max == 5 for max in df.max()])
