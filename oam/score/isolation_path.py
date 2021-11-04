@@ -9,6 +9,19 @@ from . import ScoringBaseClass
 
 class IsolationPath(ScoringBaseClass):
     def __init__(self, subsample_size: int, number_of_paths: int):
+        ''' A class to evaluate a subspace making cuts in random dimensions.
+
+        Generating subsamples with `subsample_size`, you can score how many
+        cuts in the subspace you need to isolate the query. This metric can
+        be calculated `number_of_paths` times to give you an average path.
+
+        Args:
+            **subsample_size** (int): the size of subsamples generated in
+            each subspace cut.
+
+            **number_of_paths** (int): the number of times the algorithm 
+            tries to isolate the query to calculate the average path'''
+
         self.subsample_size = subsample_size
         self.number_of_paths = number_of_paths
 
@@ -20,7 +33,7 @@ class IsolationPath(ScoringBaseClass):
         When it manages to isolate the object, it returns a score that
         represents the number of iterations or cuts that were made till
         the query was isolated. The lower the value more an outlier
-        the query is
+        the query is.
 
         Args:
             dataframe (pd.DataFrame): Dataframe used to
