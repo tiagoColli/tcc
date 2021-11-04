@@ -2,6 +2,7 @@ import logging
 from functools import partial
 from concurrent import futures
 from itertools import combinations
+from tqdm import tqdm
 
 import pandas as pd
 
@@ -83,12 +84,14 @@ class SimpleCombination:
         )
 
         if not self.multiprocessing:
-            for subspace in self.subspaces:
-                result_row = self._score_subspace(
-                    subspace, query_point, dataframe
-                )
-                # Appends to the last line of the dataframe
-                results.loc[len(results)] = result_row
+            with tqdm(total=len(self.subspaces)) as pbar:
+                for subspace in self.subspaces:
+                    result_row = self._score_subspace(
+                        subspace, query_point, dataframe
+                    )
+                    # Appends to the last line of the dataframe
+                    results.loc[len(results)] = result_row
+                    pbar.update()
 
         else:
             # Defining default arguments to the function
