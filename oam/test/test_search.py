@@ -24,7 +24,7 @@ def ipath_sc(ipath):
     return SimpleCombination(
         ipath,
         min_items_per_subspace=2,
-        max_items_per_subspace=4,
+        max_items_per_subspace=3,
         dimensions=['variation_mean', 'variation_std', 'up_count',
                     'down_count', 'top_15_variation_mean',
                     'top_15_variation_std'],

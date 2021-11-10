@@ -56,7 +56,8 @@ class SimpleCombination:
 
         self.score_method_instance = score_method_instance
         self.min_items_per_subspace = min_items_per_subspace
-        self.max_items_per_subspace = max_items_per_subspace
+        if max_items_per_subspace:
+            self.max_items_per_subspace = max_items_per_subspace + 1
         self.dimension = dimensions
         self.subspaces = subspaces
         self.multiprocessing = multiprocessing
